@@ -4,12 +4,7 @@
   <meta charset="UTF-8">
   <title>BottlePoints</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; }
     h1 { color: #2c3e50; }
     label, input, button { margin: 5px; padding: 8px; }
     #sendEmailBtn:disabled { background: #aaa; cursor: not-allowed; }
@@ -19,25 +14,22 @@
   <h1>♻️ BottlePoints</h1>
 
   <!-- User Email -->
-  <label for="email">Enter your Email:</label>
-  <input type="email" id="email" placeholder="you@example.com"><br>
+  <label for="emailInput">Enter your Email:</label>
+  <input type="email" id="emailInput" placeholder="you@example.com"><br>
 
   <!-- Firebase Data -->
   <label>Bottle Count: <span id="bottleCount">0</span></label><br>
-  <label>Credits: <span id="credits">0</span></label><br>
+  <label>Credits: <span id="credits">0</span></label><br><br>
 
-  <!-- Firebase Buttons -->
+  <!-- Manual Inputs -->
+  <label for="manualBottles">Bottles:</label>
+  <input type="number" id="manualBottles" value="0" min="0"><br>
+  <label for="manualCredits">Credits:</label>
+  <input type="number" id="manualCredits" value="0" min="0"><br><br>
+
+  <!-- Buttons -->
   <button id="getDataBtn">Get Data</button>
   <button id="updateDataBtn">Update Data</button><br><br>
-
-  <!-- Manual Testing -->
-  <label for="incBottles">Add Bottles:</label>
-  <input type="number" id="incBottles" value="1" min="1"><br>
-  <label for="incCredits">Add Credits:</label>
-  <input type="number" id="incCredits" value="10" min="1"><br>
-  <button id="manualUpdateBtn">Manual Update</button><br><br>
-
-  <!-- Email Button -->
   <button id="sendEmailBtn" disabled>Email me my points</button>
 
   <!-- Firebase SDKs -->
@@ -52,121 +44,107 @@
   </script>
 
   <script>
-    /**** Firebase config ****/
+    // 🔐 Firebase Config
     const firebaseConfig = {
-      // your Firebase config here
+      apiKey: "AIzaSyBH1YR29VHK4pJzcYMpKGgiUDBxH6clccA",
+      authDomain: "bottlepoints-60dc8.firebaseapp.com",
+      databaseURL: "https://bottlepoints-60dc8-default-rtdb.firebaseio.com",
+      projectId: "bottlepoints-60dc8",
+      storageBucket: "bottlepoints-60dc8.firebasestorage.app",
+      messagingSenderId: "507941735663",
+      appId: "1:507941735663:web:ade66e1a5723248741df1a"
     };
-    const app = firebase.initializeApp(firebaseConfig);
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    /**** DOM Handles ****/
-    const emailInput = document.getElementById("email");
+    // DOM Elements
+    const emailInput = document.getElementById("emailInput");
     const bottleLabel = document.getElementById("bottleCount");
     const creditsLabel = document.getElementById("credits");
-    const sendEmailBtn = document.getElementById("sendEmailBtn");
+    const manualBottlesInput = document.getElementById("manualBottles");
+    const manualCreditsInput = document.getElementById("manualCredits");
     const getDataBtn = document.getElementById("getDataBtn");
     const updateDataBtn = document.getElementById("updateDataBtn");
-    const incBottlesInput = document.getElementById("incBottles");
-    const incCreditsInput = document.getElementById("incCredits");
-    const manualUpdateBtn = document.getElementById("manualUpdateBtn");
+    const sendEmailBtn = document.getElementById("sendEmailBtn");
 
-    /**** App State ****/
-    let currentEmail = "";
-    let currentBottleCount = 0;
+    // App State
+    let currentBottles = 0;
     let currentCredits = 0;
 
-    /**** EmailJS constants ****/
-    const EMAILJS_SERVICE_ID = "service_9xv218b";
-    const EMAILJS_TEMPLATE_ID = "template_m9ezdw4";
-
-    /**** Helpers ****/
+    // Enable Email button if email is valid
     function refreshEmailButtonState() {
-      const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(currentEmail);
-      sendEmailBtn.disabled = !(valid && currentBottleCount >= 0 && currentCredits >= 0);
+      const email = emailInput.value.trim();
+      const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      sendEmailBtn.disabled = !valid || currentBottles < 0 || currentCredits < 0;
     }
 
-    function sendBottleEmail(userEmail, bottleCount, credits) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)) {
-        alert("Please enter a valid email first.");
-        return;
-      }
-      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-        user_email: userEmail,
-        bottles: bottleCount,
-        credits: credits
+    emailInput.addEventListener("input", refreshEmailButtonState);
+
+    function updateCurrentData(bottles, credits) {
+      currentBottles = bottles;
+      currentCredits = credits;
+      bottleLabel.innerText = bottles;
+      creditsLabel.innerText = credits;
+      manualBottlesInput.value = bottles;
+      manualCreditsInput.value = credits;
+      refreshEmailButtonState();
+    }
+
+    // Get Data from Firebase
+    getDataBtn.addEventListener("click", () => {
+      const email = emailInput.value.trim();
+      if (!email) return alert("Enter a valid email!");
+      const encodedEmail = email.replace('.', ',');
+
+      db.ref("users/" + encodedEmail).once("value").then(snapshot => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          updateCurrentData(data.bottleCount || 0, data.credits || 0);
+        } else {
+          alert("No data found for this email.");
+          updateCurrentData(0, 0);
+        }
+      }).catch(err => console.error(err));
+    });
+
+    // Update Data in Firebase
+    updateDataBtn.addEventListener("click", () => {
+      const email = emailInput.value.trim();
+      if (!email) return alert("Enter a valid email!");
+      const encodedEmail = email.replace('.', ',');
+
+      const newBottles = parseInt(manualBottlesInput.value) || 0;
+      const newCredits = parseInt(manualCreditsInput.value) || 0;
+
+      db.ref("users/" + encodedEmail).set({
+        bottleCount: newBottles,
+        credits: newCredits
       }).then(() => {
-        alert("✅ Email sent to " + userEmail);
+        updateCurrentData(newBottles, newCredits);
+        alert(✅ Updated! Bottles: ${newBottles}, Credits: ${newCredits});
+      }).catch(err => {
+        console.error(err);
+        alert("❌ Update failed. Check console for details.");
+      });
+    });
+
+    // Send Email via EmailJS
+    sendEmailBtn.addEventListener("click", () => {
+      const email = emailInput.value.trim();
+      if (!email) return alert("Enter a valid email!");
+
+      emailjs.send("service_9xv218b", "template_m9ezdw4", {
+        user_email: email,
+        bottles: currentBottles,
+        credits: currentCredits
+      }).then(() => {
+        alert(✅ Email sent to ${email});
       }).catch(err => {
         console.error(err);
         alert("❌ Email failed. Check console for details.");
       });
-    }
-
-    /**** Email input listener ****/
-    emailInput.addEventListener("input", () => {
-      currentEmail = emailInput.value.trim();
-      refreshEmailButtonState();
-    });
-
-    /**** Firebase: Get Data ****/
-    getDataBtn.addEventListener("click", () => {
-      const userId = "demoUser"; // replace with dynamic user logic if needed
-      db.ref("users/" + userId).get().then(snapshot => {
-        if (snapshot.exists()) {
-          const data = snapshot.val();
-          currentBottleCount = data.bottleCount || 0;
-          currentCredits = data.credits || 0;
-          bottleLabel.textContent = currentBottleCount;
-          creditsLabel.textContent = currentCredits;
-          refreshEmailButtonState();
-        } else {
-          alert("No data found!");
-        }
-      });
-    });
-
-    /**** Firebase: Update Data ****/
-    updateDataBtn.addEventListener("click", () => {
-      const userId = "demoUser";
-      const newBottleCount = currentBottleCount + 1;
-      const newCredits = currentCredits + 10;
-
-      db.ref("users/" + userId).set({
-        bottleCount: newBottleCount,
-        credits: newCredits
-      }).then(() => {
-        currentBottleCount = newBottleCount;
-        currentCredits = newCredits;
-        bottleLabel.textContent = currentBottleCount;
-        creditsLabel.textContent = currentCredits;
-        refreshEmailButtonState();
-      });
-    });
-
-    /**** Manual Testing ****/
-    manualUpdateBtn.addEventListener("click", () => {
-      const userId = "demoUser";
-      const addBottles = parseInt(incBottlesInput.value) || 0;
-      const addCredits = parseInt(incCreditsInput.value) || 0;
-      const newBottleCount = currentBottleCount + addBottles;
-      const newCredits = currentCredits + addCredits;
-
-      db.ref("users/" + userId).update({
-        bottleCount: newBottleCount,
-        credits: newCredits
-      }).then(() => {
-        currentBottleCount = newBottleCount;
-        currentCredits = newCredits;
-        bottleLabel.textContent = currentBottleCount;
-        creditsLabel.textContent = currentCredits;
-        refreshEmailButtonState();
-        alert(✅ Updated! Bottles: ${currentBottleCount}, Credits: ${currentCredits});
-      });
-    });
-
-    /**** Email Button ****/
-    sendEmailBtn.addEventListener("click", () => {
-      sendBottleEmail(currentEmail, currentBottleCount, currentCredits);
     });
   </script>
 </body>
