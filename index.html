@@ -1,144 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>BottlePoints</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 { color: #2c3e50; }
-    label, input, button { margin: 5px; padding: 8px; }
-    #sendEmailBtn:disabled { background: #aaa; cursor: not-allowed; }
-  </style>
+  <title>Smart Bottle Tracker</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
-  <h1>♻️ BottlePoints</h1>
+  <h2>Check Bottle Points</h2>
+  <input type="text" id="emailInput" placeholder="Enter your email">
+  <button onclick="getData()">Check</button>
+  <p><strong>Bottles:</strong> <span id="bottleCount">-</span></p>
+  <p><strong>Credits:</strong> <span id="credits">-</span></p>
 
-  <!-- User Email -->
-  <label for="email">Enter your Email:</label>
-  <input type="email" id="email" placeholder="you@example.com"><br>
-
-  <!-- Firebase Data -->
-  <label>Bottle Count: <span id="bottleCount">0</span></label><br>
-  <label>Credits: <span id="credits">0</span></label><br>
-
-  <!-- Firebase Buttons -->
-  <button id="getDataBtn">Get Data</button>
-  <button id="updateDataBtn">Update Data</button><br><br>
-
-  <!-- New Email Button -->
-  <button id="sendEmailBtn" disabled>Email me my points</button>
-
-  <!-- Firebase SDKs (already in your project, include as before) -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-
-  <!-- EmailJS SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-  <script>
-    // ✅ Initialize EmailJS with your public key
-    (function(){ emailjs.init("o7r8YfCHY4c2ks-x8"); })();
-  </script>
-
-  <script>
-    /**** Firebase config (yours goes here) ****/
-    const firebaseConfig = {
-      // your existing Firebase config
-    };
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    /**** DOM Handles ****/
-    const emailInput = document.getElementById("email");
-    const bottleLabel = document.getElementById("bottleCount");
-    const creditsLabel = document.getElementById("credits");
-    const sendEmailBtn = document.getElementById("sendEmailBtn");
-    const getDataBtn = document.getElementById("getDataBtn");
-    const updateDataBtn = document.getElementById("updateDataBtn");
-
-    /**** App State ****/
-    let currentEmail = "";
-    let currentBottleCount = 0;
-    let currentCredits = 0;
-
-    /**** EmailJS constants ****/
-    const EMAILJS_SERVICE_ID = "service_9xv218b";
-    const EMAILJS_TEMPLATE_ID = "template_m9ezdw4";
-
-    /**** Helpers ****/
-    function refreshEmailButtonState() {
-      const valid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(currentEmail);
-      sendEmailBtn.disabled = !(valid && currentBottleCount >= 0 && currentCredits >= 0);
-    }
-
-    function sendBottleEmail(userEmail, bottleCount, credits) {
-      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(userEmail)) {
-        alert("Please enter a valid email first.");
-        return;
-      }
-
-      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-        user_email: userEmail,
-        bottles: bottleCount,
-        credits: credits
-      })
-      .then(() => {
-        alert("✅ Email sent to " + userEmail);
-      })
-      .catch(err => {
-        console.error(err);
-        alert("❌ Email failed. Check console for details.");
-      });
-    }
-
-    /**** Firebase Integration ****/
-    // Example: Get Data
-    getDataBtn.addEventListener("click", () => {
-      const userId = "demoUser"; // replace with actual user path logic
-      db.ref("users/" + userId).get().then(snapshot => {
-        if (snapshot.exists()) {
-          const data = snapshot.val();
-          currentEmail = (emailInput.value || "").trim();
-          currentBottleCount = data.bottleCount || 0;
-          currentCredits = data.credits || 0;
-
-          bottleLabel.textContent = currentBottleCount;
-          creditsLabel.textContent = currentCredits;
-          refreshEmailButtonState();
-        } else {
-          alert("No data found!");
-        }
-      });
-    });
-
-    // Example: Update Data
-    updateDataBtn.addEventListener("click", () => {
-      const userId = "demoUser"; // replace with actual user path logic
-      const newBottleCount = currentBottleCount + 1;
-      const newCredits = currentCredits + 10;
-
-      db.ref("users/" + userId).set({
-        bottleCount: newBottleCount,
-        credits: newCredits
-      }).then(() => {
-        currentEmail = (emailInput.value || "").trim();
-        currentBottleCount = newBottleCount;
-        currentCredits = newCredits;
-
-        bottleLabel.textContent = currentBottleCount;
-        creditsLabel.textContent = currentCredits;
-        refreshEmailButtonState();
-      });
-    });
-
-    /**** Email Button ****/
-    sendEmailBtn.addEventListener("click", () => {
-      sendBottleEmail(currentEmail, currentBottleCount, currentCredits);
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
