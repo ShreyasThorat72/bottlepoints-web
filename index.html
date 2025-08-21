@@ -4,7 +4,12 @@
   <meta charset="UTF-8">
   <title>BottlePoints</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
     h1 { color: #2c3e50; }
     label, input, button { margin: 5px; padding: 8px; }
     #sendEmailBtn:disabled { background: #aaa; cursor: not-allowed; }
@@ -14,140 +19,126 @@
   <h1>♻️ BottlePoints</h1>
 
   <!-- User Email -->
-  <label for="emailInput">Enter your Email:</label>
-  <input type="email" id="emailInput" placeholder="you@example.com"><br>
+  <label for="email">Enter your Email:</label>
+  <input type="email" id="email" placeholder="you@example.com"><br>
 
-  <!-- Firebase Data Display -->
+  <!-- Firebase Data -->
   <label>Bottle Count: <span id="bottleCount">0</span></label><br>
-  <label>Credits: <span id="credits">0</span></label><br><br>
+  <label>Credits: <span id="credits">0</span></label><br>
 
-  <!-- Manual Inputs -->
-  <label for="manualBottles">Bottles:</label>
-  <input type="number" id="manualBottles" value="0" min="0"><br>
-  <label for="manualCredits">Credits:</label>
-  <input type="number" id="manualCredits" value="0" min="0"><br><br>
-
-  <!-- Buttons -->
+  <!-- Firebase Buttons -->
   <button id="getDataBtn">Get Data</button>
   <button id="updateDataBtn">Update Data</button><br><br>
+
+  <!-- New Email Button -->
   <button id="sendEmailBtn" disabled>Email me my points</button>
 
-  <!-- Firebase SDKs -->
+  <!-- Firebase SDKs (already in your project, include as before) -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 
   <!-- EmailJS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
   <script>
-    // Initialize EmailJS
+    // ✅ Initialize EmailJS with your public key
     (function(){ emailjs.init("o7r8YfCHY4c2ks-x8"); })();
   </script>
 
   <script>
-    // 🔐 Firebase Config
+    /**** Firebase config (yours goes here) ****/
     const firebaseConfig = {
-      apiKey: "AIzaSyBH1YR29VHK4pJzcYMpKGgiUDBxH6clccA",
-      authDomain: "bottlepoints-60dc8.firebaseapp.com",
-      databaseURL: "https://bottlepoints-60dc8-default-rtdb.firebaseio.com",
-      projectId: "bottlepoints-60dc8",
-      storageBucket: "bottlepoints-60dc8.firebasestorage.app",
-      messagingSenderId: "507941735663",
-      appId: "1:507941735663:web:ade66e1a5723248741df1a"
+      // your existing Firebase config
     };
-
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+    const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // DOM elements
-    const emailInput = document.getElementById("emailInput");
+    /**** DOM Handles ****/
+    const emailInput = document.getElementById("email");
     const bottleLabel = document.getElementById("bottleCount");
     const creditsLabel = document.getElementById("credits");
-    const manualBottlesInput = document.getElementById("manualBottles");
-    const manualCreditsInput = document.getElementById("manualCredits");
+    const sendEmailBtn = document.getElementById("sendEmailBtn");
     const getDataBtn = document.getElementById("getDataBtn");
     const updateDataBtn = document.getElementById("updateDataBtn");
-    const sendEmailBtn = document.getElementById("sendEmailBtn");
 
-    // App state
-    let currentBottles = 0;
+    /**** App State ****/
+    let currentEmail = "";
+    let currentBottleCount = 0;
     let currentCredits = 0;
 
-    // Enable Email button if email is valid (even if no data)
+    /**** EmailJS constants ****/
+    const EMAILJS_SERVICE_ID = "service_9xv218b";
+    const EMAILJS_TEMPLATE_ID = "template_m9ezdw4";
+
+    /**** Helpers ****/
     function refreshEmailButtonState() {
-      const email = emailInput.value.trim();
-      const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      sendEmailBtn.disabled = !valid;
+      const valid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(currentEmail);
+      sendEmailBtn.disabled = !(valid && currentBottleCount >= 0 && currentCredits >= 0);
     }
 
-    // Update local state and DOM
-    function updateCurrentData(bottles, credits) {
-      currentBottles = bottles;
-      currentCredits = credits;
-      bottleLabel.innerText = bottles;
-      creditsLabel.innerText = credits;
-      manualBottlesInput.value = bottles;
-      manualCreditsInput.value = credits;
-      refreshEmailButtonState();
-    }
+    function sendBottleEmail(userEmail, bottleCount, credits) {
+      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(userEmail)) {
+        alert("Please enter a valid email first.");
+        return;
+      }
 
-    // Listen to email input for button activation
-    emailInput.addEventListener("input", refreshEmailButtonState);
-
-    // GET DATA from Firebase
-    getDataBtn.addEventListener("click", () => {
-      const email = emailInput.value.trim();
-      if (!email) return alert("Enter a valid email!");
-      const encodedEmail = email.replace(/\./g, ','); // replace all dots
-
-      db.ref("users/" + encodedEmail).once("value").then(snapshot => {
-        if (snapshot.exists()) {
-          const data = snapshot.val();
-          updateCurrentData(data.bottleCount || 0, data.credits || 0);
-        } else {
-          // No data, set zeros
-          updateCurrentData(0, 0);
-        }
-      }).catch(err => console.error(err));
-    });
-
-    // UPDATE DATA in Firebase
-    updateDataBtn.addEventListener("click", () => {
-      const email = emailInput.value.trim();
-      if (!email) return alert("Enter a valid email!");
-      const encodedEmail = email.replace(/\./g, ',');
-
-      const newBottles = parseInt(manualBottlesInput.value) || 0;
-      const newCredits = parseInt(manualCreditsInput.value) || 0;
-
-      db.ref("users/" + encodedEmail).set({
-        bottleCount: newBottles,
-        credits: newCredits
-      }).then(() => {
-        updateCurrentData(newBottles, newCredits);
-        alert(✅ Updated! Bottles: ${newBottles}, Credits: ${newCredits});
-      }).catch(err => {
-        console.error(err);
-        alert("❌ Update failed. Check console for details.");
-      });
-    });
-
-    // SEND EMAIL using EmailJS
-    sendEmailBtn.addEventListener("click", () => {
-      const email = emailInput.value.trim();
-      if (!email) return alert("Enter a valid email!");
-
-      emailjs.send("service_9xv218b", "template_m9ezdw4", {
-        user_email: email,
-        bottles: currentBottles,
-        credits: currentCredits
-      }).then(() => {
-        alert(✅ Email sent to ${email});
-      }).catch(err => {
+      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        user_email: userEmail,
+        bottles: bottleCount,
+        credits: credits
+      })
+      .then(() => {
+        alert("✅ Email sent to " + userEmail);
+      })
+      .catch(err => {
         console.error(err);
         alert("❌ Email failed. Check console for details.");
       });
+    }
+
+    /**** Firebase Integration ****/
+    // Example: Get Data
+    getDataBtn.addEventListener("click", () => {
+      const userId = "demoUser"; // replace with actual user path logic
+      db.ref("users/" + userId).get().then(snapshot => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          currentEmail = (emailInput.value || "").trim();
+          currentBottleCount = data.bottleCount || 0;
+          currentCredits = data.credits || 0;
+
+          bottleLabel.textContent = currentBottleCount;
+          creditsLabel.textContent = currentCredits;
+          refreshEmailButtonState();
+        } else {
+          alert("No data found!");
+        }
+      });
+    });
+
+    // Example: Update Data
+    updateDataBtn.addEventListener("click", () => {
+      const userId = "demoUser"; // replace with actual user path logic
+      const newBottleCount = currentBottleCount + 1;
+      const newCredits = currentCredits + 10;
+
+      db.ref("users/" + userId).set({
+        bottleCount: newBottleCount,
+        credits: newCredits
+      }).then(() => {
+        currentEmail = (emailInput.value || "").trim();
+        currentBottleCount = newBottleCount;
+        currentCredits = newCredits;
+
+        bottleLabel.textContent = currentBottleCount;
+        creditsLabel.textContent = currentCredits;
+        refreshEmailButtonState();
+      });
+    });
+
+    /**** Email Button ****/
+    sendEmailBtn.addEventListener("click", () => {
+      sendBottleEmail(currentEmail, currentBottleCount, currentCredits);
     });
   </script>
 </body>
-</html> //thorat
+</html>
