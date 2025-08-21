@@ -17,7 +17,7 @@
   <label for="emailInput">Enter your Email:</label>
   <input type="email" id="emailInput" placeholder="you@example.com"><br>
 
-  <!-- Firebase Data -->
+  <!-- Firebase Data Display -->
   <label>Bottle Count: <span id="bottleCount">0</span></label><br>
   <label>Credits: <span id="credits">0</span></label><br><br>
 
@@ -59,7 +59,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // DOM Elements
+    // DOM elements
     const emailInput = document.getElementById("emailInput");
     const bottleLabel = document.getElementById("bottleCount");
     const creditsLabel = document.getElementById("credits");
@@ -69,19 +69,18 @@
     const updateDataBtn = document.getElementById("updateDataBtn");
     const sendEmailBtn = document.getElementById("sendEmailBtn");
 
-    // App State
+    // App state
     let currentBottles = 0;
     let currentCredits = 0;
 
-    // Enable Email button if email is valid
+    // Enable Email button if email is valid (even if no data)
     function refreshEmailButtonState() {
       const email = emailInput.value.trim();
       const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      sendEmailBtn.disabled = !valid || currentBottles < 0 || currentCredits < 0;
+      sendEmailBtn.disabled = !valid;
     }
 
-    emailInput.addEventListener("input", refreshEmailButtonState);
-
+    // Update local state and DOM
     function updateCurrentData(bottles, credits) {
       currentBottles = bottles;
       currentCredits = credits;
@@ -92,28 +91,31 @@
       refreshEmailButtonState();
     }
 
-    // Get Data from Firebase
+    // Listen to email input for button activation
+    emailInput.addEventListener("input", refreshEmailButtonState);
+
+    // GET DATA from Firebase
     getDataBtn.addEventListener("click", () => {
       const email = emailInput.value.trim();
       if (!email) return alert("Enter a valid email!");
-      const encodedEmail = email.replace('.', ',');
+      const encodedEmail = email.replace(/\./g, ','); // replace all dots
 
       db.ref("users/" + encodedEmail).once("value").then(snapshot => {
         if (snapshot.exists()) {
           const data = snapshot.val();
           updateCurrentData(data.bottleCount || 0, data.credits || 0);
         } else {
-          alert("No data found for this email.");
+          // No data, set zeros
           updateCurrentData(0, 0);
         }
       }).catch(err => console.error(err));
     });
 
-    // Update Data in Firebase
+    // UPDATE DATA in Firebase
     updateDataBtn.addEventListener("click", () => {
       const email = emailInput.value.trim();
       if (!email) return alert("Enter a valid email!");
-      const encodedEmail = email.replace('.', ',');
+      const encodedEmail = email.replace(/\./g, ',');
 
       const newBottles = parseInt(manualBottlesInput.value) || 0;
       const newCredits = parseInt(manualCreditsInput.value) || 0;
@@ -130,7 +132,7 @@
       });
     });
 
-    // Send Email via EmailJS
+    // SEND EMAIL using EmailJS
     sendEmailBtn.addEventListener("click", () => {
       const email = emailInput.value.trim();
       if (!email) return alert("Enter a valid email!");
@@ -148,4 +150,4 @@
     });
   </script>
 </body>
-</html>
+</html> //thorat
