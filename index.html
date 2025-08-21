@@ -1,17 +1,78 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Smart Bottle Tracker</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <title>BottlePoints Web</title>
 </head>
 <body>
-  <h2>Check Bottle Points</h2>
-  <input type="text" id="emailInput" placeholder="Enter your email">
-  <button onclick="getData()">Check</button>
-  <p><strong>Bottles:</strong> <span id="bottleCount">-</span></p>
+  <h2>BottlePoints - Smart Bottle Recycler</h2>
+
+  <!-- Input for Email -->
+  <input type="text" id="email" placeholder="Enter Email" />
+  <button onclick="getUserData()">Get Data</button>
+
+  <!-- Display Data -->
+  <p><strong>Bottle Count:</strong> <span id="bottleCount">-</span></p>
   <p><strong>Credits:</strong> <span id="credits">-</span></p>
 
-  <script src="script.js"></script>
+  <!-- Update Section -->
+  <h3>Update Your Data</h3>
+  <input type="number" id="newCount" placeholder="New Bottle Count" />
+  <input type="number" id="newCredits" placeholder="New Credits" />
+  <button onclick="updateData()">Update</button>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <script>
+    // 🔧 Your Firebase Config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 🔍 Fetch Data
+    function getUserData() {
+      const email = document.getElementById("email").value.replace(/\./g, "_");
+      db.ref("users/" + email).once("value")
+        .then(snapshot => {
+          const value = snapshot.val();
+          if (value) {
+            document.getElementById("bottleCount").innerText = value.bottleCount;
+            document.getElementById("credits").innerText = value.credits;
+          } else {
+            alert("No data found for this email.");
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching data:", error);
+        });
+    }
+
+    // 📤 Update Data
+    function updateData() {
+      const email = document.getElementById("email").value.replace(/\./g, "_");
+      const newCount = parseInt(document.getElementById("newCount").value);
+      const newCredits = parseInt(document.getElementById("newCredits").value);
+
+      db.ref("users/" + email).update({
+        bottleCount: newCount,
+        credits: newCredits
+      }).then(() => {
+        alert("Data updated successfully!");
+      }).catch((error) => {
+        alert("Error updating data: " + error.message);
+      });
+    }
+  </script>
 </body>
 </html>
