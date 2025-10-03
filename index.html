@@ -6,20 +6,22 @@
 <body>
   <h2>BottlePoints - Smart Bottle Recycler</h2>
 
-  <!-- Step 1: Enter Phone Number -->
-  <input type="text" id="phoneNumber" placeholder="+91XXXXXXXXXX" />
+  <!-- Phone Number Login -->
+  <input type="text" id="phoneNumber" placeholder="+91XXXXXXXXXX">
   <div id="recaptcha-container"></div>
   <button onclick="sendOTP()">Get OTP</button>
 
-  <!-- Step 2: Verify OTP -->
-  <input type="text" id="otp" placeholder="Enter OTP" />
+  <input type="text" id="otp" placeholder="Enter OTP">
   <button onclick="verifyOTP()">Verify OTP</button>
 
-  <!-- Display Data -->
+  <p id="loginStatus"></p>
+  <hr>
+
+  <!-- Show Data -->
   <h3>User Data</h3>
   <p><strong>Bottle Count:</strong> <span id="bottleCount">-</span></p>
   <p><strong>Credits:</strong> <span id="credits">-</span></p>
-  <p><strong>Unique Code:</strong> <span id="uniqueCode">-</span></p>
+  <button onclick="fetchData()">Manual Update</button>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -27,42 +29,35 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
   <script>
-    // 🔐 Your Firebase Config
+    // 🔐 Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyBH1YR29VHK4pJzcYMpKGgiUDBxH6clccA",
       authDomain: "bottlepoints-60dc8.firebaseapp.com",
       databaseURL: "https://bottlepoints-60dc8-default-rtdb.firebaseio.com",
       projectId: "bottlepoints-60dc8",
-      storageBucket: "bottlepoints-60dc8.firebasestorage.app",
+      storageBucket: "bottlepoints-60dc8.appspot.com",
       messagingSenderId: "507941735663",
       appId: "1:507941735663:web:ade66e1a5723248741df1a"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
     const db = firebase.database();
+    const auth = firebase.auth();
 
-    let confirmationResult;
-    let activePhone = "";
+    let currentUser = null;
 
-    // 📲 Send OTP
+    // ✅ Send OTP
     function sendOTP() {
-      activePhone = document.getElementById("phoneNumber").value;
-      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-        'size': 'normal',
-        'callback': function(response) {
-          console.log("Recaptcha verified");
-        }
-      });
+      const phone = document.getElementById("phoneNumber").value;
+      window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier("recaptcha-container");
+      const appVerifier = window.recaptchaVerifier;
 
-      auth.signInWithPhoneNumber(activePhone, window.recaptchaVerifier)
-        .then((result) => {
-          confirmationResult = result;
-          alert("OTP sent!");
+      auth.signInWithPhoneNumber(phone, appVerifier)
+        .then(confirmationResult => {
+          window.confirmationResult = confirmationResult;
+          alert("OTP Sent!");
         })
-        .catch((error) => {
-          console.error("Error sending OTP:", error);
+        .catch(error => {
           alert(error.message);
         });
     }
@@ -70,30 +65,36 @@
     // ✅ Verify OTP
     function verifyOTP() {
       const code = document.getElementById("otp").value;
-      confirmationResult.confirm(code)
-        .then((result) => {
-          alert("Phone verified!");
-          loadUserData(activePhone);
+      window.confirmationResult.confirm(code)
+        .then(result => {
+          currentUser = result.user.phoneNumber.replace(/\+/g, "").trim();
+          document.getElementById("loginStatus").innerText = "Logged in: " + currentUser;
+
+          // Save active user in Firebase
+          db.ref("/activeUser").set(currentUser);
         })
-        .catch((error) => {
+        .catch(error => {
           alert("Invalid OTP: " + error.message);
         });
     }
 
-    // 🔍 Load Data from Firebase
-    function loadUserData(phone) {
-      const safePhone = phone.replace(/\+/g, "_"); // store like +91xxxx → _91xxxx
-      db.ref("users/" + safePhone).once("value")
-        .then(snapshot => {
-          const value = snapshot.val();
-          if (value) {
-            document.getElementById("bottleCount").innerText = value.bottleCount || 0;
-            document.getElementById("credits").innerText = value.credits || 0;
-            document.getElementById("uniqueCode").innerText = value.uniqueCode || "N/A";
-          } else {
-            alert("No data found for this user.");
-          }
-        });
+    // ✅ Manual Fetch
+    function fetchData() {
+      if (!currentUser) {
+        alert("Please login first!");
+        return;
+      }
+
+      const userPath = "users/" + currentUser;
+      db.ref(userPath).once("value").then(snapshot => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          document.getElementById("bottleCount").innerText = data.bottleCount || 0;
+          document.getElementById("credits").innerText = data.credits || 0;
+        } else {
+          alert("No data for this user.");
+        }
+      });
     }
   </script>
 </body>
