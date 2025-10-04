@@ -2,34 +2,72 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BottlePoints</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BottlePoints Login</title>
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <!-- Your JS -->
+  <script defer src="script.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f5f7fa;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    input {
+      padding: 10px;
+      margin: 10px;
+      width: 250px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .data-container {
+      margin-top: 30px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      display: inline-block;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+  </style>
 </head>
+
 <body>
-  <h2>♻ BottlePoints Login</h2>
+  <h1>♻️ BottlePoints Login</h1>
 
-  <label>Phone Number:</label>
-  <input type="text" id="phoneInput" placeholder="+91XXXXXXXXXX" />
+  <input id="phoneInput" type="text" placeholder="+91xxxxxxxxxx" />
   <div id="recaptcha-container"></div>
-  <button onclick="sendOTP()">Get OTP</button>
+  <button onclick="sendOTP()">Send OTP</button>
 
-  <br/><br/>
-  <label>Enter OTP:</label>
-  <input type="text" id="otpInput" />
+  <br />
+  <input id="otpInput" type="text" placeholder="Enter OTP" />
   <button onclick="verifyOTP()">Verify OTP</button>
 
-  <hr/>
-  <h3>User Dashboard</h3>
-  <p>Bottle Count: <span id="bottleCount">0</span></p>
-  <p>Credits: <span id="credits">0</span></p>
-  <p>Unique Code: <span id="uniqueCode">---</span></p>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
-  <!-- Link JS -->
-  <script src="app.js"></script>
+  <div class="data-container" id="userData" style="display: none;">
+    <h2>Welcome, Verified User</h2>
+    <p><b>Bottle Count:</b> <span id="bottleCount">0</span></p>
+    <p><b>Credits:</b> <span id="credits">0</span></p>
+    <p><b>Unique Code:</b> <span id="uniqueCode">N/A</span></p>
+    <button onclick="manualUpdate()">🔄 Manual Update</button>
+  </div>
 </body>
 </html>
