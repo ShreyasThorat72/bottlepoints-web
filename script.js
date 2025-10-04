@@ -1,4 +1,3 @@
-// 🔐 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBH1YR29VHK4pJzcYMpKGgiUDBxH6clccA",
   authDomain: "bottlepoints-60dc8.firebaseapp.com",
@@ -8,69 +7,86 @@ const firebaseConfig = {
   messagingSenderId: "507941735663",
   appId: "1:507941735663:web:ade66e1a5723248741df1a"
 };
-
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+
 const auth = firebase.auth();
+const db = firebase.database();
 
 let confirmationResult;
-let activePhone = "";
+let activeUser = null;
 
-// 📲 Send OTP
+// ================= OTP / Login =================
 function sendOTP() {
-  activePhone = document.getElementById("phoneInput").value.trim();
+  const phoneNumber = document.getElementById("phoneInput").value.trim();
 
-  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier("recaptcha-container", {
-    size: "normal"
-  });
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      size: 'normal',
+      callback: function(response) {
+        console.log("✅ reCAPTCHA solved!");
+      }
+    });
+    window.recaptchaVerifier.render();
+  }
 
-  auth.signInWithPhoneNumber(activePhone, window.recaptchaVerifier)
+  auth.signInWithPhoneNumber(phoneNumber, window.recaptchaVerifier)
     .then((result) => {
       confirmationResult = result;
-      alert("OTP sent to " + activePhone);
+      alert("OTP sent to " + phoneNumber);
     })
     .catch((error) => {
-      console.error("Error sending OTP:", error);
+      console.error("❌ Error sending OTP:", error);
       alert(error.message);
     });
 }
 
-// ✅ Verify OTP
 function verifyOTP() {
   const otp = document.getElementById("otpInput").value.trim();
 
+  if (!confirmationResult) {
+    alert("Please request OTP first!");
+    return;
+  }
+
   confirmationResult.confirm(otp)
     .then((result) => {
-      alert("Phone verified!");
-      // Store active user in Firebase (without + sign)
-      let encodedPhone = activePhone.replace(/\+/g, "");
-      db.ref("activeUser").set(encodedPhone);
-      document.getElementById("loginStatus").innerText = "Logged in: " + encodedPhone;
-      fetchData();
+      activeUser = result.user;
+      alert("✅ Phone Verified!");
+      startFetchingESPData();
     })
     .catch((error) => {
-      console.error("Error verifying OTP:", error);
-      alert("Invalid OTP. Try again.");
+      console.error("❌ OTP Verification failed:", error);
+      alert("Wrong OTP. Try again.");
     });
 }
 
-// 🔍 Fetch User Data
-function fetchData() {
-  db.ref("activeUser").once("value").then(snapshot => {
-    if (snapshot.exists()) {
-      let encodedPhone = snapshot.val();
-      db.ref("users/" + encodedPhone).once("value").then(userSnap => {
-        if (userSnap.exists()) {
-          let data = userSnap.val();
-          document.getElementById("bottleCount").innerText = data.bottleCount || 0;
-          document.getElementById("credits").innerText = data.credits || 0;
-          document.getElementById("uniqueCode").innerText = data.uniqueCode || "N/A";
-        } else {
-          alert("No data for this user.");
-        }
+// ================= Fetch from ESP32 =================
+function startFetchingESPData() {
+  if (!activeUser) {
+    console.warn("No active user.");
+    return;
+  }
+
+  setInterval(() => {
+    fetch("/getBottleCount")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("bottleCount").textContent = data;
+        db.ref("users/" + activeUser.uid + "/bottleCount").set(data);
       });
-    } else {
-      alert("No active user set.");
-    }
-  });
+
+    fetch("/getCredits")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("credits").textContent = data;
+        db.ref("users/" + activeUser.uid + "/credits").set(data);
+      });
+
+    fetch("/getUniqueCode")
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById("uniqueCode").textContent = data;
+        db.ref("users/" + activeUser.uid + "/uniqueCode").set(data);
+      });
+  }, 5000);
 }
