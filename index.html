@@ -1,73 +1,113 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BottlePoints Login</title>
-  
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+// ✅ Your Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyBH1YR29VHK4pJzcYMpKGgiUDBxH6clccA",
+  authDomain: "bottlepoints-60dc8.firebaseapp.com",
+  databaseURL: "https://bottlepoints-60dc8-default-rtdb.firebaseio.com",
+  projectId: "bottlepoints-60dc8",
+  storageBucket: "bottlepoints-60dc8.firebasestorage.app",
+  messagingSenderId: "507941735663",
+  appId: "1:507941735663:web:ade66e1a5723248741df1a"
+};
 
-  <!-- Your JS -->
-  <script defer src="script.js"></script>
+// 🔥 Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f5f7fa;
-      padding: 20px;
-    }
-    h1 {
-      color: #333;
-    }
-    input {
-      padding: 10px;
-      margin: 10px;
-      width: 250px;
-      font-size: 16px;
-    }
-    button {
-      padding: 10px 20px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .data-container {
-      margin-top: 30px;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      display: inline-block;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
-  </style>
-</head>
+let confirmationResult;
+let activePhone = "";
 
-<body>
-  <h1>♻️ BottlePoints Login</h1>
+// 🧩 Initialize Recaptcha when page loads
+window.onload = function () {
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier("recaptcha-container", {
+    size: "normal",
+    callback: function (response) {
+      console.log("reCAPTCHA verified!");
+    }
+  });
+  recaptchaVerifier.render();
+};
 
-  <input id="phoneInput" type="text" placeholder="+91xxxxxxxxxx" />
-  <div id="recaptcha-container"></div>
-  <button onclick="sendOTP()">Send OTP</button>
+// 📲 Send OTP
+function sendOTP() {
+  activePhone = document.getElementById("phoneInput").value.trim();
 
-  <br />
-  <input id="otpInput" type="text" placeholder="Enter OTP" />
-  <button onclick="verifyOTP()">Verify OTP</button>
+  if (!activePhone.startsWith("+")) {
+    alert("Please include country code (e.g., +91XXXXXXXXXX)");
+    return;
+  }
 
-  <div class="data-container" id="userData" style="display: none;">
-    <h2>Welcome, Verified User</h2>
-    <p><b>Bottle Count:</b> <span id="bottleCount">0</span></p>
-    <p><b>Credits:</b> <span id="credits">0</span></p>
-    <p><b>Unique Code:</b> <span id="uniqueCode">N/A</span></p>
-    <button onclick="manualUpdate()">🔄 Manual Update</button>
-  </div>
-</body>
-</html>
+  auth.signInWithPhoneNumber(activePhone, window.recaptchaVerifier)
+    .then((result) => {
+      confirmationResult = result;
+      alert("OTP sent to " + activePhone);
+    })
+    .catch((error) => {
+      console.error("Error sending OTP:", error);
+      alert("Error: " + error.message);
+    });
+}
+
+// ✅ Verify OTP
+function verifyOTP() {
+  const otp = document.getElementById("otpInput").value.trim();
+  if (!otp) {
+    alert("Enter OTP first");
+    return;
+  }
+
+  confirmationResult.confirm(otp)
+    .then((result) => {
+      alert("✅ Phone verified successfully !!!!!");
+      document.getElementById("userData").style.display = "block";
+      loadUserData(activePhone);
+    })
+    .catch((error) => {
+      console.error("Error verifying OTP:", error);
+      alert("❌ Invalid OTP. Try again.");
+    });
+}
+
+// 🔍 Load user data
+function loadUserData(phone) {
+  const encodedPhone = phone.replace(/\+/g, "");
+  db.ref("users/" + encodedPhone).once("value")
+    .then(snapshot => {
+      if (snapshot.exists()) {
+        let data = snapshot.val();
+        document.getElementById("bottleCount").innerText = data.bottleCount || 0;
+        document.getElementById("credits").innerText = data.credits || 0;
+        document.getElementById("uniqueCode").innerText = data.uniqueCode || "N/A";
+      } else {
+        alert("No data found for this user.");
+      }
+    })
+    .catch(error => {
+      console.error("Error fetching data:", error);
+    });
+}
+
+// 🔄 Manual update button
+function manualUpdate() {
+  if (!activePhone) {
+    alert("Login first!");
+    return;
+  }
+
+  const encodedPhone = activePhone.replace(/\+/g, "");
+  db.ref("users/" + encodedPhone).once("value")
+    .then(snapshot => {
+      if (snapshot.exists()) {
+        let data = snapshot.val();
+        document.getElementById("bottleCount").innerText = data.bottleCount || 0;
+        document.getElementById("credits").innerText = data.credits || 0;
+        document.getElementById("uniqueCode").innerText = data.uniqueCode || "N/A";
+        alert("✅ Data updated successfully!");
+      } else {
+        alert("No data found in Firebase for this user.");
+      }
+    })
+    .catch(error => {
+      console.error("Error during manual update:", error);
+    });
+}
