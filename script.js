@@ -1,4 +1,4 @@
-// 🔐 Firebase Configuration
+// ✅ Your Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBH1YR29VHK4pJzcYMpKGgiUDBxH6clccA",
   authDomain: "bottlepoints-60dc8.firebaseapp.com",
@@ -17,18 +17,25 @@ const auth = firebase.auth();
 let confirmationResult;
 let activePhone = "";
 
+// 🧩 Initialize Recaptcha when page loads
+window.onload = function () {
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier("recaptcha-container", {
+    size: "normal",
+    callback: function (response) {
+      console.log("reCAPTCHA verified!");
+    }
+  });
+  recaptchaVerifier.render();
+};
+
 // 📲 Send OTP
 function sendOTP() {
   activePhone = document.getElementById("phoneInput").value.trim();
 
   if (!activePhone.startsWith("+")) {
-    alert("Please include country code. Example: +91XXXXXXXXXX");
+    alert("Please include country code (e.g., +91XXXXXXXXXX)");
     return;
   }
-
-  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier("recaptcha-container", {
-    size: "normal"
-  });
 
   auth.signInWithPhoneNumber(activePhone, window.recaptchaVerifier)
     .then((result) => {
@@ -37,46 +44,37 @@ function sendOTP() {
     })
     .catch((error) => {
       console.error("Error sending OTP:", error);
-      alert(error.message);
+      alert("Error: " + error.message);
     });
 }
 
 // ✅ Verify OTP
 function verifyOTP() {
   const otp = document.getElementById("otpInput").value.trim();
-
-  confirmationResult.confirm(otp)
-    .then((result) => {
-      alert("✅ Phone verified!");
-      let encodedPhone = activePhone.replace(/\+/g, "");
-
-      // Save active user in Firebase
-      db.ref("activeUser").set(encodedPhone)
-        .then(() => {
-          document.getElementById("loginStatus").innerText = "Logged in: " + encodedPhone;
-          fetchData();
-        });
-    })
-    .catch((error) => {
-      console.error("Error verifying OTP:", error);
-      alert("Invalid OTP. Try again.");
-    });
-}
-
-// 🔍 Manual Data Fetch
-function fetchData() {
-  if (!activePhone) {
-    alert("Please login first!");
+  if (!otp) {
+    alert("Enter OTP first");
     return;
   }
 
-  const encodedPhone = activePhone.replace(/\+/g, "");
-  const userPath = "users/" + encodedPhone;
+  confirmationResult.confirm(otp)
+    .then((result) => {
+      alert("✅ Phone verified successfully!");
+      document.getElementById("userData").style.display = "block";
+      loadUserData(activePhone);
+    })
+    .catch((error) => {
+      console.error("Error verifying OTP:", error);
+      alert("❌ Invalid OTP. Try again.");
+    });
+}
 
-  db.ref(userPath).once("value")
+// 🔍 Load user data
+function loadUserData(phone) {
+  const encodedPhone = phone.replace(/\+/g, "");
+  db.ref("users/" + encodedPhone).once("value")
     .then(snapshot => {
       if (snapshot.exists()) {
-        const data = snapshot.val();
+        let data = snapshot.val();
         document.getElementById("bottleCount").innerText = data.bottleCount || 0;
         document.getElementById("credits").innerText = data.credits || 0;
         document.getElementById("uniqueCode").innerText = data.uniqueCode || "N/A";
@@ -86,5 +84,30 @@ function fetchData() {
     })
     .catch(error => {
       console.error("Error fetching data:", error);
+    });
+}
+
+// 🔄 Manual update button
+function manualUpdate() {
+  if (!activePhone) {
+    alert("Login first!");
+    return;
+  }
+
+  const encodedPhone = activePhone.replace(/\+/g, "");
+  db.ref("users/" + encodedPhone).once("value")
+    .then(snapshot => {
+      if (snapshot.exists()) {
+        let data = snapshot.val();
+        document.getElementById("bottleCount").innerText = data.bottleCount || 0;
+        document.getElementById("credits").innerText = data.credits || 0;
+        document.getElementById("uniqueCode").innerText = data.uniqueCode || "N/A";
+        alert("✅ Data updated successfully!");
+      } else {
+        alert("No data found in Firebase for this user.");
+      }
+    })
+    .catch(error => {
+      console.error("Error during manual update:", error);
     });
 }
