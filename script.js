@@ -1,4 +1,4 @@
-// ✅ Your Firebase Config
+// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBH1YR29VHK4pJzcYMpKGgiUDBxH6clccA",
   authDomain: "bottlepoints-60dc8.firebaseapp.com",
@@ -9,7 +9,7 @@ const firebaseConfig = {
   appId: "1:507941735663:web:ade66e1a5723248741df1a"
 };
 
-// 🔥 Initialize Firebase
+// 🚀 Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
@@ -17,25 +17,12 @@ const auth = firebase.auth();
 let confirmationResult;
 let activePhone = "";
 
-// 🧩 Initialize Recaptcha when page loads
-window.onload = function () {
-  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier("recaptcha-container", {
-    size: "normal",
-    callback: function (response) {
-      console.log("reCAPTCHA verified!");
-    }
-  });
-  recaptchaVerifier.render();
-};
-
-// 📲 Send OTP
+// ✅ Send OTP
 function sendOTP() {
   activePhone = document.getElementById("phoneInput").value.trim();
+  if (!activePhone.startsWith("+")) activePhone = "+" + activePhone;
 
-  if (!activePhone.startsWith("+")) {
-    alert("Please include country code (e.g., +91XXXXXXXXXX)");
-    return;
-  }
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier("recaptcha-container", { size: "normal" });
 
   auth.signInWithPhoneNumber(activePhone, window.recaptchaVerifier)
     .then((result) => {
@@ -43,7 +30,7 @@ function sendOTP() {
       alert("OTP sent to " + activePhone);
     })
     .catch((error) => {
-      console.error("Error sending OTP:", error);
+      console.error(error);
       alert("Error: " + error.message);
     });
 }
@@ -51,63 +38,43 @@ function sendOTP() {
 // ✅ Verify OTP
 function verifyOTP() {
   const otp = document.getElementById("otpInput").value.trim();
-  if (!otp) {
-    alert("Enter OTP first");
-    return;
-  }
-
   confirmationResult.confirm(otp)
     .then((result) => {
-      alert("✅ Phone verified successfully!");
-      document.getElementById("userData").style.display = "block";
-      loadUserData(activePhone);
+      alert("Phone verified!");
+      activePhone = result.user.phoneNumber.replace("+", "");
+      
+      // ✅ Set active user for ESP32
+      db.ref("/activeUser").set(activePhone);
+      
+      // Start listening for updates
+      listenToUserData(activePhone);
+      
+      document.getElementById("status").innerText = "Connected: " + activePhone;
+      document.getElementById("status").style.color = "green";
     })
     .catch((error) => {
-      console.error("Error verifying OTP:", error);
-      alert("❌ Invalid OTP. Try again.");
+      alert("Invalid OTP: " + error.message);
     });
 }
 
-// 🔍 Load user data
-function loadUserData(phone) {
-  const encodedPhone = phone.replace(/\+/g, "");
-  db.ref("users/" + encodedPhone).once("value")
-    .then(snapshot => {
-      if (snapshot.exists()) {
-        let data = snapshot.val();
-        document.getElementById("bottleCount").innerText = data.bottleCount || 0;
-        document.getElementById("credits").innerText = data.credits || 0;
-        document.getElementById("uniqueCode").innerText = data.uniqueCode || "N/A";
-      } else {
-        alert("No data found for this user.");
-      }
-    })
-    .catch(error => {
-      console.error("Error fetching data:", error);
-    });
+// 🔄 Listen to user’s live data
+function listenToUserData(phone) {
+  const path = "users/" + phone;
+  db.ref(path).on("value", (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      document.getElementById("bottleCount").innerText = data.bottleCount ?? 0;
+      document.getElementById("credits").innerText = data.credits ?? 0;
+      document.getElementById("uniqueCode").innerText = data.uniqueCode ?? "N/A";
+    }
+  });
 }
 
-// 🔄 Manual update button
+// 🔁 Manual Refresh
 function manualUpdate() {
   if (!activePhone) {
-    alert("Login first!");
+    alert("Please verify phone first!");
     return;
   }
-
-  const encodedPhone = activePhone.replace(/\+/g, "");
-  db.ref("users/" + encodedPhone).once("value")
-    .then(snapshot => {
-      if (snapshot.exists()) {
-        let data = snapshot.val();
-        document.getElementById("bottleCount").innerText = data.bottleCount || 0;
-        document.getElementById("credits").innerText = data.credits || 0;
-        document.getElementById("uniqueCode").innerText = data.uniqueCode || "N/A";
-        alert("✅ Data updated successfully!");
-      } else {
-        alert("No data found in Firebase for this user.");
-      }
-    })
-    .catch(error => {
-      console.error("Error during manual update:", error);
-    });
+  listenToUserData(activePhone);
 }
