@@ -1,32 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>BottlePoints</title>
-  <script type="module" src="app.js"></script>
-  <style>
-    body { font-family: Arial; text-align: center; margin-top: 40px; }
-    input, button { margin: 8px; padding: 10px; font-size: 16px; }
-    #dashboard { margin-top: 30px; display: none; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BottlePoints - Login</title>
 </head>
 <body>
-  <h2>📱 BottlePoints Login</h2>
-  <input type="text" id="phoneNumber" placeholder="Enter phone number (e.g. +919876543210)" /><br>
-  <div id="recaptcha-container"></div><br>
-  <button id="getOtpBtn">Get OTP</button><br><br>
+  <h2>BottlePoints Login</h2>
 
-  <input type="text" id="otp" placeholder="Enter OTP" /><br>
+  <input type="text" id="phoneInput" placeholder="+91XXXXXXXXXX">
+  <div id="recaptcha-container"></div>
+  <button id="getOtpBtn">Get OTP</button>
+
+  <br><br>
+  <input type="text" id="otpInput" placeholder="Enter OTP">
   <button id="verifyOtpBtn">Verify OTP</button>
 
-  <h3 id="status"></h3>
+  <p id="loginStatus"></p>
 
-  <div id="dashboard">
-    <h2>👤 Active User Dashboard</h2>
-    <p>Phone: <span id="userPhone"></span></p>
-    <p>Bottle Count: <span id="bottleCount">0</span></p>
-    <p>Credits: <span id="credits">0</span></p>
-    <p>Unique Code: <span id="uniqueCode"></span></p>
-  </div>
+  <hr>
+  <h3>User Data</h3>
+  <p><strong>Bottle Count:</strong> <span id="bottleCount">-</span></p>
+  <p><strong>Credits:</strong> <span id="credits">-</span></p>
+  <p><strong>Unique Code:</strong> <span id="uniqueCode">-</span></p>
+  <button id="fetchBtn">Manual Update</button>
+
+  <!-- Firebase SDK (Modular v10+) -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>
