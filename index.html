@@ -1,31 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BottlePoints - Login</title>
+  <title>BottlePoints Dashboard</title>
 </head>
 <body>
-  <h2>BottlePoints Login</h2>
+  <h2>♻️ BottlePoints - Smart Bottle Recycler</h2>
 
   <input type="text" id="phoneInput" placeholder="+91XXXXXXXXXX">
   <div id="recaptcha-container"></div>
-  <button id="getOtpBtn">Get OTP</button>
-
+  <button onclick="sendOTP()">Get OTP</button>
   <br><br>
   <input type="text" id="otpInput" placeholder="Enter OTP">
-  <button id="verifyOtpBtn">Verify OTP</button>
-
-  <p id="loginStatus"></p>
-
+  <button onclick="verifyOTP()">Verify OTP</button>
   <hr>
-  <h3>User Data</h3>
-  <p><strong>Bottle Count:</strong> <span id="bottleCount">-</span></p>
-  <p><strong>Credits:</strong> <span id="credits">-</span></p>
-  <p><strong>Unique Code:</strong> <span id="uniqueCode">-</span></p>
-  <button id="fetchBtn">Manual Update</button>
 
-  <!-- Firebase SDK (Modular v10+) -->
-  <script type="module" src="app.js"></script>
+  <h3>Live User Data</h3>
+  <p><strong>Bottle Count:</strong> <span id="bottleCount">0</span></p>
+  <p><strong>Credits:</strong> <span id="credits">0</span></p>
+  <p><strong>Unique Code:</strong> <span id="uniqueCode">N/A</span></p>
+  <button onclick="manualUpdate()">Manual Refresh</button>
+
+  <p id="status" style="color:red;">Not Connected</p>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="bottlepoints.js"></script>
 </body>
 </html>
