@@ -1,4 +1,4 @@
-// 🔥 Firebase Config
+// ✅ Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBH1YR29VHK4pJzcYMpKGgiUDBxH6clccA",
   authDomain: "bottlepoints-60dc8.firebaseapp.com",
@@ -9,7 +9,7 @@ const firebaseConfig = {
   appId: "1:507941735663:web:ade66e1a5723248741df1a"
 };
 
-// 🚀 Initialize Firebase
+// 🔥 Init Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
@@ -17,7 +17,7 @@ const auth = firebase.auth();
 let confirmationResult;
 let activePhone = "";
 
-// ✅ Send OTP
+// 📲 Send OTP
 function sendOTP() {
   activePhone = document.getElementById("phoneInput").value.trim();
   if (!activePhone.startsWith("+")) activePhone = "+" + activePhone;
@@ -31,7 +31,7 @@ function sendOTP() {
     })
     .catch((error) => {
       console.error(error);
-      alert("Error: " + error.message);
+      alert(error.message);
     });
 }
 
@@ -42,13 +42,8 @@ function verifyOTP() {
     .then((result) => {
       alert("Phone verified!");
       activePhone = result.user.phoneNumber.replace("+", "");
-      
-      // ✅ Set active user for ESP32
-      db.ref("/activeUser").set(activePhone);
-      
-      // Start listening for updates
+      db.ref("/activeUser").set(activePhone); // 🔥 Sync with ESP32
       listenToUserData(activePhone);
-      
       document.getElementById("status").innerText = "Connected: " + activePhone;
       document.getElementById("status").style.color = "green";
     })
@@ -57,7 +52,7 @@ function verifyOTP() {
     });
 }
 
-// 🔄 Listen to user’s live data
+// 🔄 Realtime listener for user's data
 function listenToUserData(phone) {
   const path = "users/" + phone;
   db.ref(path).on("value", (snapshot) => {
@@ -70,7 +65,7 @@ function listenToUserData(phone) {
   });
 }
 
-// 🔁 Manual Refresh
+// 🧭 Manual refresh (optional)
 function manualUpdate() {
   if (!activePhone) {
     alert("Please verify phone first!");
@@ -78,4 +73,3 @@ function manualUpdate() {
   }
   listenToUserData(activePhone);
 }
-
