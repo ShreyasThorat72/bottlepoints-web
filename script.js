@@ -60,6 +60,14 @@ function verifyOTP() {
     .then((result) => {
       alert("✅ Phone verified successfully!");
       document.getElementById("userData").style.display = "block";
+
+      const encodedPhone = activePhone.replace(/\+/g, "");
+
+      // 🟢 NEW: Set this user as active in Firebase
+      db.ref("/activeUser").set(encodedPhone)
+        .then(() => console.log("✅ Active user updated in Firebase:", encodedPhone))
+        .catch(err => console.error("❌ Error updating activeUser:", err));
+
       loadUserData(activePhone);
     })
     .catch((error) => {
